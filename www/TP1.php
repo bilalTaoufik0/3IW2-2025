@@ -30,3 +30,122 @@ M'envoyer un lien par mail de votre repo sur y.skrzypczyk@gmail.com
 Objet du mail : TP1 - 2IW3 - Nom Prénom
 Si vous ne savez pas mettre votre code sur un repo envoyez moi une archive
 */
+
+
+
+
+
+// connexion a la base de données postgreSQL
+$db_user = "devuser";
+$db_password = "devpass";
+$db = new PDO('pgsql:host=db;port=5432;dbname=devdb', $db_user, $db_password);
+
+
+$errors = [];
+$success = false;
+
+$firstname = "";
+$lastname = "";
+$email = "";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $firstname = trim($_POST['firstname']);
+    $lastname = trim($_POST['lastname']);
+    $email = strtolower(trim($_POST['email'])); // efface les espaces et tjr en minuscule
+    $password = $_POST['password'];
+    $password_verif = $_POST['password_verif'];
+
+    // verifier si l'email n'est pas vide
+    if (empty($email)) {
+        $errors[] = "L'email est obligatoire";
+    }
+
+    // verif si l'email existe déjà
+    if (empty($errors)) {
+        $email_exist = $db->prepare('SELECT id FROM "user" WHERE email = :email');
+        $email_exist->execute(['email' => $email]);
+        if ($email_exist->fetch()) { // le fetch va chercher dans la bdd si oui retourne l'id sinon false
+            $errors[] = "Cet email est déjà pris";
+        }
+    }
+
+    // verif si le mdp n'est pas vide et correspond a 8 carac minimum
+    if (empty($password)) {
+        $errors[] = "Le mdp est obligatoire";
+    } elseif (strlen($password) < 8) {
+        $errors[] = "Le mdp est trop court (minim 8 carac)";
+    }
+
+    // verif si le mdp et mdp2 sont identiques
+    if ($password !== $password_verif) {
+        $errors[] = "Les mots de passe ne correspondent pas";
+    }
+
+    // si pas d'erreur, les données sont renvoyées
+    if (empty($errors)) {
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        $submit = $db->prepare('INSERT INTO "user" (firstname, lastname, email, password) VALUES (:firstname, :lastname, :email, :password)');
+
+        $submit->execute([
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'email' => $email,
+            'password' => $password_hash
+        ]);
+
+
+        // met les valeurs a vide quand success
+        $success = true;
+        $firstname = "";
+        $lastname = "";
+        $email = "";
+
+
+    }
+}
+
+?>
+
+
+
+
+<h2 style="display:flex;justify-content:center;">FORMULAIRE D'INSCRIPTION PHP - TP1</h2>
+
+
+<form action="TP1.php" method="POST" style="display:flex;flex-direction:column;padding:20px;gap:5px;">
+
+    <label>Prénom :</label>
+    <input type="text" name="firstname" value="<?php echo htmlspecialchars($firstname); ?>"> <!-- mettre les veleurs necessaire si erreur-->
+
+    <label>Nom :</label>
+    <input type="text" name="lastname" value="<?php echo htmlspecialchars($lastname); ?>">
+
+    <label>*E-mail :</label>
+    <input type="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
+
+    <label>*Mot de passe (8 caractères min) :</label>
+    <input type="password" name="password" required>
+
+    <label>*Confirme le mot de passe :</label>
+    <input type="password" name="password_verif" required>
+
+    <button type="submit" style="margin-top:10px">ENVOYER</button>
+</form>
+
+
+<?php
+    if ($success) {
+        echo '<p style="color:green";>Inscription ok</p>';
+    }
+?>
+
+
+<?php
+    // si error n'est pas vide alors il parcours les erreurs et les affiches
+    if (!empty($errors)) {
+        foreach ($errors as $error) {
+            echo '<p style="color:red;"> erreur lors de linscription ' . $error . '</p>';
+        }
+    }
+?>
