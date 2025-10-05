@@ -36,9 +36,11 @@ Si vous ne savez pas mettre votre code sur un repo envoyez moi une archive
 
 
 // connexion a la base de données postgreSQL
-$db_user = "devuser";
-$db_password = "devpass";
-$db = new PDO('pgsql:host=db;port=5432;dbname=devdb', $db_user, $db_password);
+$db_user = $_ENV["POSTGRES_USER"];      
+$db_password = $_ENV["POSTGRES_PASSWORD"];
+$db_name = $_ENV["POSTGRES_DB"];
+
+$db = new PDO("pgsql:host=db;port=5432;dbname=$db_name", $db_user, $db_password);
 
 
 $errors = [];
@@ -59,7 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // verifier si l'email n'est pas vide
     if (empty($email)) {
         $errors[] = "L'email est obligatoire";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "l'email est pas valide";
     }
+    
+
 
     // verif si l'email existe déjà
     if (empty($errors)) {
@@ -95,13 +101,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
 
+        // $to      = $email;
+        // $subject = "Confirmation d'inscription";
+        // $message = "Merci" . $firstname . "" . $lastname . "de votre inscription";
+        // $headers = array(
+        //     'From' => "bll.taoufik@gmaiil.com",
+        //     'Reply-To' => "bll.taoufik@gmaiil.com",
+        //     'X-Mailer' => 'PHP/' . phpversion()
+        // );
+
+
+        // mail($to, $subject, $message, $headers);
+
+
         // met les valeurs a vide quand success
         $success = true;
         $firstname = "";
         $lastname = "";
         $email = "";
-
-
     }
 }
 
@@ -136,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php
     if ($success) {
-        echo '<p style="color:green";>Inscription ok</p>';
+        echo '<p style="color:green">Inscription ok</p>';
     }
 ?>
 
@@ -145,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // si error n'est pas vide alors il parcours les erreurs et les affiches
     if (!empty($errors)) {
         foreach ($errors as $error) {
-            echo '<p style="color:red;"> erreur lors de linscription ' . $error . '</p>';
+            echo '<p style="color:red"> erreur lors de linscription ' . $error . '</p>';
         }
     }
 ?>
